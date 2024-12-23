@@ -30,10 +30,18 @@ async function run() {
 
         const queryHive = client.db("QueryHive").collection("queries");
 
+        // Insert a query
         app.post('/queries', async (req, res) => {
             const query = req.body;
             const result = await queryHive.insertOne(query);
-            res.json(result);
+            res.send(result);
+        });
+
+        // Get all queries
+        app.get('/queries', async (req, res) => {
+            const cursor = queryHive.find({});
+            const result = await cursor.toArray();
+            res.send(result);
         });
 
         // Send a ping to confirm a successful connection
