@@ -125,7 +125,12 @@ async function run() {
             res.send(result);
         });
 
-
+        // Fetch all recommendations for a specific queryId
+        app.get('/queries/:queryId/recommendations', async(req, res) => {
+            const queryId = req.params.queryId;
+            const result = await recommendationCollections.find({ queryId: queryId }).toArray();
+            res.send(result);
+        });
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
