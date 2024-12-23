@@ -31,6 +31,8 @@ async function run() {
         const queryHive = client.db("QueryHive").collection("queries");
         const recommendationCollections = client.db("QueryHive").collection("recommendations");
 
+
+
         // Insert a query
         app.post('/queries', async (req, res) => {
             const query = req.body;
@@ -38,6 +40,12 @@ async function run() {
             res.send(result);
         });
 
+        // // Insert a recommendation
+        // app.post('/recommendations', async (req, res) => {
+        //     const recommendation = req.body;
+        //     const result = await recommendationCollections.insertOne(recommendation);
+        //     res.send(result);
+        // });
 
 
         // Get all queries APIs
@@ -89,6 +97,35 @@ async function run() {
             const result = await queryHive.updateOne(filter, query, options);
             res.send(result);
         });
+
+        // Increment recommendationCount API
+        // app.patch('/queries/increment-recommendation/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const filter = { _id: new ObjectId(id) };
+        //     const update = { $inc: { recommendationCount: 1 } };
+
+        //     const result = await queryHive.updateOne(filter, update);
+        //     res.send(result);
+        // });
+
+        // Insert a recommendation and increment the count
+        app.post('/recommendations', async (req, res) => {
+            const recommendation = req.body;
+            const queryId = recommendation.queryId;
+
+            const result = await recommendationCollections.insertOne(recommendation);
+
+            if (result.insertedId) {
+                const filter = { _id: new ObjectId(queryId) };
+                const update = { $inc: { recommendationCount: 1 } };
+
+                await queryHive.updateOne(filter, update);
+            }
+
+            res.send(result);
+        });
+
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
