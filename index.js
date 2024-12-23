@@ -29,6 +29,7 @@ async function run() {
         await client.connect();
 
         const queryHive = client.db("QueryHive").collection("queries");
+        const recommendationCollections = client.db("QueryHive").collection("recommendations");
 
         // Insert a query
         app.post('/queries', async (req, res) => {
@@ -36,6 +37,8 @@ async function run() {
             const result = await queryHive.insertOne(query);
             res.send(result);
         });
+
+
 
         // Get all queries APIs
         app.get('/queries', async (req, res) => {
@@ -47,15 +50,22 @@ async function run() {
         // Get a query by id
         app.get('/queries/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await queryHive.findOne(query);
+            res.send(result);
+        });
+
+        app.get('/queries/email/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { userEmail: email };
+            const result = await queryHive.find(query).toArray();
             res.send(result);
         });
 
         // Delete a query by id
         app.delete('/queries/:id', async (req, res) => {
             const id = req.params.id;
-            const query = {_id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await queryHive.deleteOne(query);
             res.send(result);
         });
@@ -63,7 +73,7 @@ async function run() {
         // Update a query by id
         app.patch('/queries/:id', async (req, res) => {
             const id = req.params.id;
-            const filter = {_id: new ObjectId(id)};
+            const filter = { _id: new ObjectId(id) };
             const options = { upsert: true };
             const updatedQuery = req.body;
             const query = {
