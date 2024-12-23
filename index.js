@@ -60,6 +60,26 @@ async function run() {
             res.send(result);
         });
 
+        // Update a query by id
+        app.patch('/queries/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = {_id: new ObjectId(id)};
+            const options = { upsert: true };
+            const updatedQuery = req.body;
+            const query = {
+                $set: {
+                    productName: updatedQuery.productName,
+                    productBrand: updatedQuery.productBrand,
+                    productImageURL: updatedQuery.productImageURL,
+                    queryTitle: updatedQuery.queryTitle,
+                    boycottingReason: updatedQuery.boycottingReason,
+                    createdAt: updatedQuery.updateTime,
+                }
+            }
+            const result = await queryHive.updateOne(filter, query, options);
+            res.send(result);
+        });
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
