@@ -40,13 +40,6 @@ async function run() {
             res.send(result);
         });
 
-        // // Insert a recommendation
-        // app.post('/recommendations', async (req, res) => {
-        //     const recommendation = req.body;
-        //     const result = await recommendationCollections.insertOne(recommendation);
-        //     res.send(result);
-        // });
-
 
         // Get all queries APIs
         app.get('/queries', async (req, res) => {
@@ -98,15 +91,6 @@ async function run() {
             res.send(result);
         });
 
-        // Increment recommendationCount API
-        // app.patch('/queries/increment-recommendation/:id', async (req, res) => {
-        //     const id = req.params.id;
-        //     const filter = { _id: new ObjectId(id) };
-        //     const update = { $inc: { recommendationCount: 1 } };
-
-        //     const result = await queryHive.updateOne(filter, update);
-        //     res.send(result);
-        // });
 
         // get all recommendations
         app.get('/recommendations', async (req, res) => {
@@ -140,8 +124,36 @@ async function run() {
             res.send(result);
         });
 
+        // Delete a recommendation by id and decrement the count
+        app.delete('/recommendations/:id', async (req, res) => {
+            const id = req.params.id;
+
+            // Find the recommendation to get the queryId
+            const recommendation = await recommendationCollections.findOne({ _id: new ObjectId(id) });
+
+            if (recommendation) {
+                const queryId = recommendation.queryId;
+
+                // Delete the recommendation
+                const result = await recommendationCollections.deleteOne({ _id: new ObjectId(id) });
+
+                if (result.deletedCount === 1) {
+                    // Decrement the recommendation count in the related query
+                    await queryHive.updateOne(
+                        { _id: new ObjectId(queryId) },
+                        { $inc: { recommendationCount: -1 } }
+                    );
+                }
+
+                res.send(result);
+            }
+        });
+
+        
+
+
         // Fetch all recommendations for a specific queryId
-        app.get('/queries/:queryId/recommendations', async(req, res) => {
+        app.get('/queries/:queryId/recommendations', async (req, res) => {
             const queryId = req.params.queryId;
             const result = await recommendationCollections.find({ queryId: queryId }).toArray();
             res.send(result);
