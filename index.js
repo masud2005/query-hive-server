@@ -1,16 +1,39 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 require('dotenv').config()
 const app = express();
 const port = process.env.PORT || 5000;
 
 
 // Middle Ware
+app.use(cors({
+    origin: ['http://localhost:5173'],
+    credentials: true,
+}));
 app.use(express.json());
-app.use(cors());
+app.use(cookieParser());
 
 
+// Custom MiddleWare
+const verifyToken = (req, res, next) => {
+    const token = req.cookies?.token;
 
+    if (!token) {
+        return res.status(401).send({ massage: 'unauthorized access' });
+    }
+
+    // Verify the token
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ massage: 'unauthorized access' });
+        }
+
+        req.user = decoded;
+        next();
+    })
+}
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.cckud.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -31,7 +54,27 @@ async function run() {
         const queryHive = client.db("QueryHive").collection("queries");
         const recommendationCollections = client.db("QueryHive").collection("recommendations");
 
+        // Auth Related APIs
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '5h' });
+            res
+                .cookie('token', token, {
+                    httpOnly: true,
+                    secure: false,
+                })
+                .send({ success: true });
+        });
 
+        // Logout Auth
+        app.post('/logout', (req, res) => {
+            res
+                .clearCookie('token', {
+                    httpOnly: true,
+                    secure: false,
+                })
+                .send({ success: true });
+        })
 
         // Insert a query
         app.post('/queries', async (req, res) => {
@@ -56,9 +99,18 @@ async function run() {
         });
 
         // Get a query by email
-        app.get('/queries/email/:email', async (req, res) => {
+        app.get('/queries/email/:email', verifyToken,  async (req, res) => {
             const email = req.params.email;
             const query = { userEmail: email };
+
+            // console.log('cok cok cookies', req.cookies);
+            // console.log(email);
+            // console.log(req.user?.email);
+
+            if (req.user?.email !== req.params.email) {
+                return res.status(403).send({ massage: 'forbidden access' });
+            }
+
             const result = await queryHive.find(query).toArray();
             res.send(result);
         });
@@ -107,9 +159,13 @@ async function run() {
         });
 
         // get a recommendation by email
-        app.get('/recommendations/email/:email', async (req, res) => {
+        app.get('/recommendations/email/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             const query = { recommenderEmail: email };
+            // console.log('cok cok cookies', req.cookies);
+            if(req.user?.email !== email) {
+                return res.status(403).send({ massage: 'forbidden access' });
+            }
             const result = await recommendationCollections.find(query).toArray();
             res.send(result);
         });
@@ -157,8 +213,12 @@ async function run() {
         });
 
         // Fetch all recommendations for all queries of a specific user
-        app.get('/recommendations/user/:email', async (req, res) => {
+        app.get('/recommendations/user/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
+            // console.log('cok cok cookies', req.cookies);
+            if(req.user?.email !== email) {
+                return res.status(403).send({ massage: 'forbidden access' });
+            }
             // Find all queries created by the user
             const userQueries = await queryHive.find({ userEmail: email }).toArray();
 
