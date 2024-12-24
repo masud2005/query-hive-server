@@ -40,7 +40,6 @@ async function run() {
             res.send(result);
         });
 
-
         // Get all queries APIs
         app.get('/queries', async (req, res) => {
             const cursor = queryHive.find({});
@@ -56,10 +55,18 @@ async function run() {
             res.send(result);
         });
 
+        // Get a query by email
         app.get('/queries/email/:email', async (req, res) => {
             const email = req.params.email;
             const query = { userEmail: email };
             const result = await queryHive.find(query).toArray();
+            res.send(result);
+        });
+
+        // Get the 6 most recent queries
+        app.get('/recent-queries', async (req, res) => {
+            const cursor = queryHive.find({}).sort({ createdAt: -1 }).limit(6);
+            const result = await cursor.toArray();
             res.send(result);
         });
 
@@ -152,25 +159,17 @@ async function run() {
         // Fetch all recommendations for all queries of a specific user
         app.get('/recommendations/user/:email', async (req, res) => {
             const email = req.params.email;
+            // Find all queries created by the user
+            const userQueries = await queryHive.find({ userEmail: email }).toArray();
 
-            try {
-                // Find all queries created by the user
-                const userQueries = await queryHive.find({ userEmail: email }).toArray();
+            // Extract all query IDs
+            const queryIds = userQueries.map(query => query._id.toString());
 
-                // Extract all query IDs
-                const queryIds = userQueries.map(query => query._id.toString());
+            // Find recommendations for the user's queries
+            const recommendations = await recommendationCollections.find({ queryId: { $in: queryIds } }).toArray();
 
-                // Find recommendations for the user's queries
-                const recommendations = await recommendationCollections.find({ queryId: { $in: queryIds } }).toArray();
-
-                res.send(recommendations);
-            } catch (error) {
-                console.error(error);
-                res.status(500).send({ message: "Failed to fetch recommendations for user" });
-            }
+            res.send(recommendations);
         });
-
-
 
         // Fetch all recommendations for a specific queryId
         app.get('/queries/:queryId/recommendations', async (req, res) => {
