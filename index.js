@@ -149,7 +149,27 @@ async function run() {
             }
         });
 
-        
+        // Fetch all recommendations for all queries of a specific user
+        app.get('/recommendations/user/:email', async (req, res) => {
+            const email = req.params.email;
+
+            try {
+                // Find all queries created by the user
+                const userQueries = await queryHive.find({ userEmail: email }).toArray();
+
+                // Extract all query IDs
+                const queryIds = userQueries.map(query => query._id.toString());
+
+                // Find recommendations for the user's queries
+                const recommendations = await recommendationCollections.find({ queryId: { $in: queryIds } }).toArray();
+
+                res.send(recommendations);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: "Failed to fetch recommendations for user" });
+            }
+        });
+
 
 
         // Fetch all recommendations for a specific queryId
