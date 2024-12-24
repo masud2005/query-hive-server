@@ -108,6 +108,21 @@ async function run() {
         //     res.send(result);
         // });
 
+        // get all recommendations
+        app.get('/recommendations', async (req, res) => {
+            const cursor = recommendationCollections.find({});
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        // get a recommendation by email
+        app.get('/recommendations/email/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { recommenderEmail: email };
+            const result = await recommendationCollections.find(query).toArray();
+            res.send(result);
+        });
+
         // Insert a recommendation and increment the count
         app.post('/recommendations', async (req, res) => {
             const recommendation = req.body;
