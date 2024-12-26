@@ -11,8 +11,8 @@ const port = process.env.PORT || 5000;
 app.use(cors({
     origin: [
         "http://localhost:5173",
-        "https://ask-and-recommend.web.app/",
-        "https://ask-and-recommend.firebaseapp.com/"
+        "https://ask-and-recommend.web.app",
+        "https://ask-and-recommend.firebaseapp.com"
     ],
     credentials: true,
 }));
