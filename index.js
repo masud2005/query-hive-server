@@ -9,7 +9,11 @@ const port = process.env.PORT || 5000;
 
 // Middle Ware
 app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: [
+        "http://localhost:5173",
+        "https://ask-and-recommend.web.app/",
+        "https://ask-and-recommend.firebaseapp.com/"
+    ],
     credentials: true,
 }));
 app.use(express.json());
@@ -49,7 +53,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
 
         const queryHive = client.db("QueryHive").collection("queries");
         const recommendationCollections = client.db("QueryHive").collection("recommendations");
@@ -61,7 +65,8 @@ async function run() {
             res
                 .cookie('token', token, {
                     httpOnly: true,
-                    secure: false,
+                    secure: process.env.NODE_ENV === "production",
+                    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
                 })
                 .send({ success: true });
         });
@@ -71,7 +76,8 @@ async function run() {
             res
                 .clearCookie('token', {
                     httpOnly: true,
-                    secure: false,
+                    secure: process.env.NODE_ENV === "production",
+                    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
                 })
                 .send({ success: true });
         })
@@ -99,7 +105,7 @@ async function run() {
         });
 
         // Get a query by email
-        app.get('/queries/email/:email', verifyToken,  async (req, res) => {
+        app.get('/queries/email/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             const query = { userEmail: email };
 
@@ -163,7 +169,7 @@ async function run() {
             const email = req.params.email;
             const query = { recommenderEmail: email };
             // console.log('cok cok cookies', req.cookies);
-            if(req.user?.email !== email) {
+            if (req.user?.email !== email) {
                 return res.status(403).send({ massage: 'forbidden access' });
             }
             const result = await recommendationCollections.find(query).toArray();
@@ -216,7 +222,7 @@ async function run() {
         app.get('/recommendations/user/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             // console.log('cok cok cookies', req.cookies);
-            if(req.user?.email !== email) {
+            if (req.user?.email !== email) {
                 return res.status(403).send({ massage: 'forbidden access' });
             }
             // Find all queries created by the user
@@ -232,14 +238,14 @@ async function run() {
         });
 
         // Fetch all recommendations for a specific queryId
-        app.get('/queries/:queryId/recommendations', async (req, res) => {
+        app.get('/queries/:queryId/recommendations', verifyToken, async (req, res) => {
             const queryId = req.params.queryId;
             const result = await recommendationCollections.find({ queryId: queryId }).toArray();
             res.send(result);
         });
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
