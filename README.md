@@ -14,7 +14,7 @@ The purpose of QueryHive is to:
 
 ## Live URL
 
-[Live Demo](https://ask-and-recommend.web.app/)
+[Live Demo](https://ask-and-recommend.web.app)
 
 ---
 
